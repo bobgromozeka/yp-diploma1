@@ -1,4 +1,4 @@
-module yp_diploma1
+module github.com/bobgromozeka/yp-diploma1
 
 go 1.20
 

@@ -8,19 +8,37 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"yp_diploma1/internal/app"
+	"github.com/bobgromozeka/yp-diploma1/internal/app"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers/user"
 )
 
 func makeServer(app app.App) *chi.Mux {
-	server := chi.NewMux()
+	r := chi.NewMux()
 
-	server.Use(
-		middleware.Heartbeat("/health"),
+	r.Use(
 		middleware.StripSlashes,
+		middleware.Logger,
 		middleware.Recoverer,
 	)
 
-	return server
+	r.Route(
+		"/api", func(r chi.Router) {
+			r.Use(middleware.Heartbeat("/health"))
+
+			r.Route(
+				"/user", func(r chi.Router) {
+					r.Post(
+						"/register", user.Register(app),
+					)
+					r.Post(
+						"/login", user.Login(app),
+					)
+				},
+			)
+		},
+	)
+
+	return r
 }
 
 func Run(c Config) {

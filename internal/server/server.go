@@ -6,22 +6,26 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
+	"yp_diploma1/internal/app"
 )
 
-func makeServer() *chi.Mux {
+func makeServer(app app.App) *chi.Mux {
 	server := chi.NewMux()
 
-	server.Get(
-		"/health", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		},
+	server.Use(
+		middleware.Heartbeat("/health"),
+		middleware.StripSlashes,
+		middleware.Recoverer,
 	)
 
 	return server
 }
 
 func Run(c Config) {
-	server := makeServer()
+	application := app.New()
+	server := makeServer(application)
 
 	fmt.Println("Running server on " + c.RunAddress)
 	if err := http.ListenAndServe(c.RunAddress, server); err != nil {

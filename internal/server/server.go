@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -22,7 +23,8 @@ func makeServer() *chi.Mux {
 func Run(c Config) {
 	server := makeServer()
 
-	if err := http.ListenAndServe(":8080", server); err != nil {
+	fmt.Println("Running server on " + c.RunAddress)
+	if err := http.ListenAndServe(c.RunAddress, server); err != nil {
 		//TODO logging
 		log.Fatalln(err)
 	}

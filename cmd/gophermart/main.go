@@ -5,5 +5,10 @@ import (
 )
 
 func main() {
-	server.Run(server.Config{})
+	config := server.Config{}
+
+	parseFlags(&config)
+	parseEnv(&config)
+
+	server.Run(config)
 }

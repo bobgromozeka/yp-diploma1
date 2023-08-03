@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"yp_diploma1/internal/server"
+	"github.com/bobgromozeka/yp-diploma1/internal/server"
 )
 
 const (
@@ -20,6 +20,8 @@ func parseFlags(c *server.Config) {
 		"Postgresql data source name (connection string like postgres://username:password@localhost:5432/database_name)",
 	)
 	flag.StringVar(&c.AccrualSystemAddress, "r", "", "Accrual system address")
+
+	flag.Parse()
 }
 
 func parseEnv(c *server.Config) {

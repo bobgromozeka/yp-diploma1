@@ -9,7 +9,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/bobgromozeka/yp-diploma1/internal/app"
+	"github.com/bobgromozeka/yp-diploma1/internal/db"
 	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers/user"
+	"github.com/bobgromozeka/yp-diploma1/internal/storage"
 )
 
 func makeServer(app app.App) *chi.Mux {
@@ -42,8 +44,19 @@ func makeServer(app app.App) *chi.Mux {
 }
 
 func Run(c Config) {
-	application := app.New()
+	connErr := db.Connect(c.DatabaseURI)
+	if connErr != nil {
+		log.Fatalln(connErr)
+	}
+
+	pgStorage := storage.NewPGStorage(db.Connection())
+	application := app.New(pgStorage, db.Connection())
 	server := makeServer(application)
+
+	bootstrapError := storage.Bootstrap(db.Connection())
+	if bootstrapError != nil {
+		log.Fatalln(bootstrapError)
+	}
 
 	fmt.Println("Running server on " + c.RunAddress)
 	if err := http.ListenAndServe(c.RunAddress, server); err != nil {

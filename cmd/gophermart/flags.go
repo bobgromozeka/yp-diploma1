@@ -4,27 +4,29 @@ import (
 	"flag"
 	"os"
 
-	"github.com/bobgromozeka/yp-diploma1/internal/server"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/config"
 )
 
 const (
 	RunAddress           = "RUN_ADDRESS"
 	DatabaseURI          = "DATABASE_URI"
 	AccrualSystemAddress = "ACCRUAL_SYSTEM_ADDRESS"
+	JWTSecret            = "JWT_SECRET"
 )
 
-func parseFlags(c *server.Config) {
+func parseFlags(c *config.Config) {
 	flag.StringVar(&c.RunAddress, "a", "localhost:8080", "server address and port")
 	flag.StringVar(
 		&c.DatabaseURI, "d", "",
 		"Postgresql data source name (connection string like postgres://username:password@localhost:5432/database_name)",
 	)
 	flag.StringVar(&c.AccrualSystemAddress, "r", "", "Accrual system address")
+	flag.StringVar(&c.JWTSecret, "j", "secret", "JWT Secret key")
 
 	flag.Parse()
 }
 
-func parseEnv(c *server.Config) {
+func parseEnv(c *config.Config) {
 	if runAddr, found := os.LookupEnv(RunAddress); found {
 		c.RunAddress = runAddr
 	}
@@ -35,5 +37,9 @@ func parseEnv(c *server.Config) {
 
 	if accrualSystemAddress, found := os.LookupEnv(AccrualSystemAddress); found {
 		c.AccrualSystemAddress = accrualSystemAddress
+	}
+
+	if jwt, found := os.LookupEnv(JWTSecret); found {
+		c.JWTSecret = jwt
 	}
 }

@@ -2,13 +2,16 @@ package main
 
 import (
 	"github.com/bobgromozeka/yp-diploma1/internal/server"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/config"
 )
 
 func main() {
-	config := server.Config{}
+	c := config.Get()
 
-	parseFlags(&config)
-	parseEnv(&config)
+	parseFlags(&c)
+	parseEnv(&c)
 
-	server.Run(config)
+	config.Set(c)
+
+	server.Run()
 }

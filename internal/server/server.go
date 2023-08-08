@@ -47,11 +47,7 @@ func makeServer(app app.App) *chi.Mux {
 
 							r.Route(
 								"/orders", func(r chi.Router) {
-									r.Get(
-										"/", func(w http.ResponseWriter, r *http.Request) {
-
-										},
-									)
+									r.Get("/", orders.GetAll(app))
 									r.Post("/", orders.Create(app))
 								},
 							)

@@ -66,7 +66,7 @@ func (s PgStorage) CreateOrder(ctx context.Context, number string, userID int64)
 	}
 
 	_, createErr := s.db.ExecContext(
-		ctx, "insert into orders(user_id, number, status, created_at) values($1,$2,$3,$4)", userID, number,
+		ctx, "insert into orders(user_id, number, status, uploaded_at) values($1,$2,$3,$4)", userID, number,
 		models.OrderFirstStatus, time.Now(),
 	)
 	if createErr != nil {
@@ -76,18 +76,39 @@ func (s PgStorage) CreateOrder(ctx context.Context, number string, userID int64)
 	return nil
 }
 
+func (s PgStorage) GetUserOrders(ctx context.Context, userID int64) ([]models.Order, error) {
+	orders := make([]models.Order, 0)
+	rows, rowsErr := s.db.QueryContext(
+		ctx, "select id, user_id, number, status, uploaded_at, updated_at from orders where user_id = $1", userID,
+	)
+	if rowsErr != nil {
+		return orders, rowsErr
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var o models.Order
+		if scanErr := rows.Scan(&o.ID, &o.UserID, &o.Number, &o.Status, &o.UploadedAt, &o.UpdatedAt); scanErr != nil {
+			return orders, scanErr
+		}
+		orders = append(orders, o)
+	}
+
+	return orders, nil
+}
+
 func (s PgStorage) GetOrder(ctx context.Context, number string) (models.Order, error) {
 	var o models.Order
 
 	row := s.db.QueryRowContext(
-		ctx, "select id, user_id, number, status, created_at, updated_at from orders where number = $1", number,
+		ctx, "select id, user_id, number, status, uploaded_at, updated_at from orders where number = $1", number,
 	)
 
 	if row.Err() != nil {
 		return o, row.Err()
 	}
 
-	if scanErr := row.Scan(&o.ID, &o.UserID, &o.Number, &o.Status, &o.CreatedAt, &o.UpdatedAt); scanErr != nil {
+	if scanErr := row.Scan(&o.ID, &o.UserID, &o.Number, &o.Status, &o.UploadedAt, &o.UpdatedAt); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
 			return o, OrderNotFound
 		}
@@ -125,7 +146,7 @@ func Bootstrap(db *sql.DB) error {
     			number varchar(255) NOT NULL,
     			status varchar(255) NOT NULL,
     			accrual int,
-    			created_at timestamp NOT NULL,
+    			uploaded_at timestamp NOT NULL,
     			updated_at timestamp,
     			constraint fk_user
             		foreign key (user_id)

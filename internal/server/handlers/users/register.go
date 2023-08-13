@@ -52,7 +52,7 @@ func Register(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set(constants.AuthorizationHeader, token)
+		w.Header().Set(constants.AuthorizationHeader, "Bearer "+token)
 		w.WriteHeader(http.StatusOK)
 	}
 }

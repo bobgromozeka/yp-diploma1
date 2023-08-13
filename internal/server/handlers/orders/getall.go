@@ -25,12 +25,12 @@ func GetAll(d dependencies.D) http.HandlerFunc {
 		}
 
 		if len(orders) < 1 {
-			d.Logger.Debugw("Got no orders", "user_id", userID)
+			d.Logger.Infow("Got no orders", "user_id", userID)
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		d.Logger.Debugw("Sending user orders: ", "orders", orders)
+		d.Logger.Infow("Sending user orders: ", "orders", orders)
 		if serveErr := handlers.ServeJSON(w, orders); serveErr != nil {
 			d.Logger.Error(serveErr)
 			return

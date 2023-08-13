@@ -91,6 +91,7 @@ func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
 
 	if err != nil {
 		ac.d.Logger.Error("Error during requesting accrual system: " + err.Error())
+		return err
 	}
 	defer response.RawBody().Close()
 
@@ -99,7 +100,7 @@ func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
 		ac.d.Logger.Infow("Too many requests to accrual system", "order", order)
 		return ErrTooManyRequests
 	case http.StatusNoContent:
-		ac.d.Logger.Infof("No order %s in accrual system.", order.Status)
+		ac.d.Logger.Infof("No order %s in accrual system.", order.Number)
 	case http.StatusInternalServerError:
 		ac.d.Logger.Infow("Accrual system returned internal server error", "order_number", order.Number)
 	case http.StatusOK:
@@ -119,7 +120,6 @@ func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
 }
 
 func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
-	d.Logger.Infow("Starting accrual polling.", "accrual_addr", config.Get().AccrualSystemAddress)
 	ac := New(d, config.Get().AccrualSystemAddress)
 
 	ac.Start(shutdownCtx)

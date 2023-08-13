@@ -85,7 +85,7 @@ func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
 	go func() {
 		<-shutdownCtx.Done()
 
-		forceCtx, _ := context.WithTimeout(context.Background(), time.Second*30)
+		forceCtx, cancelForceCtx := context.WithTimeout(context.Background(), time.Second*30)
 		go func() {
 			<-forceCtx.Done()
 			d.Logger.Fatal("Shutdown deadline is exceeded. Forcing exit")
@@ -96,6 +96,7 @@ func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
 		if err != nil {
 			d.Logger.Fatal(err)
 		}
+		cancelForceCtx()
 	}()
 
 	fmt.Println("Running server on " + config.Get().RunAddress)

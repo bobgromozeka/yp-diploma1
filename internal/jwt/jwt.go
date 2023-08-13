@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	NoUserID = errors.New("no user id")
+	ErrNoUserID = errors.New("no user id")
 )
 
 func GetTokenAuth(secret string) *jwtauth.JWTAuth {
@@ -43,5 +43,5 @@ func GetUserID(ctx context.Context) (int64, error) {
 		return int64(userID), nil
 	}
 
-	return 0, NoUserID
+	return 0, ErrNoUserID
 }

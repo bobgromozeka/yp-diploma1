@@ -104,6 +104,9 @@ func (s PgStorage) GetUserOrders(ctx context.Context, userID int64) ([]models.Or
 	if rowsErr != nil {
 		return orders, rowsErr
 	}
+	if rows.Err() != nil {
+		return orders, rows.Err()
+	}
 	defer rows.Close()
 
 	for rows.Next() {
@@ -148,6 +151,9 @@ func (s PgStorage) GetLatestUnprocessedOrders(ctx context.Context, count int) ([
 	)
 	if rowsErr != nil {
 		return orders, rowsErr
+	}
+	if rows.Err() != nil {
+		return orders, rows.Err()
 	}
 	defer rows.Close()
 
@@ -265,6 +271,10 @@ func (s PgStorage) GetUserWithdrawals(ctx context.Context, userID int64) ([]mode
 	if withdrawalsErr != nil {
 		return withdrawals, withdrawalsErr
 	}
+	if withdrawalRows.Err() != nil {
+		return withdrawals, withdrawalRows.Err()
+	}
+	defer withdrawalRows.Close()
 
 	for withdrawalRows.Next() {
 		var w models.Withdrawal

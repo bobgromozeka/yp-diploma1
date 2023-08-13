@@ -99,7 +99,8 @@ func (s PgStorage) CreateOrder(ctx context.Context, number string, userID int64)
 func (s PgStorage) GetUserOrders(ctx context.Context, userID int64) ([]models.Order, error) {
 	orders := make([]models.Order, 0)
 	rows, rowsErr := s.db.QueryContext(
-		ctx, "select id, user_id, number, status, uploaded_at, updated_at from orders where user_id = $1", userID,
+		ctx, "select id, user_id, number, status, accrual, uploaded_at, updated_at from orders where user_id = $1",
+		userID,
 	)
 	if rowsErr != nil {
 		return orders, rowsErr
@@ -111,7 +112,9 @@ func (s PgStorage) GetUserOrders(ctx context.Context, userID int64) ([]models.Or
 
 	for rows.Next() {
 		var o models.Order
-		if scanErr := rows.Scan(&o.ID, &o.UserID, &o.Number, &o.Status, &o.UploadedAt, &o.UpdatedAt); scanErr != nil {
+		if scanErr := rows.Scan(
+			&o.ID, &o.UserID, &o.Number, &o.Status, &o.Accrual, &o.UploadedAt, &o.UpdatedAt,
+		); scanErr != nil {
 			return orders, scanErr
 		}
 		orders = append(orders, o)
@@ -241,13 +244,17 @@ func (s PgStorage) Withdraw(ctx context.Context, userID int64, orderNumber strin
 func (s PgStorage) GetUserWithdrawalsSum(ctx context.Context, userID int64) (float64, error) {
 	sumRow := s.db.QueryRowContext(ctx, "select sum(sum) from withdrawals where user_id = $1", userID)
 
-	var sum float64
+	var sum *float64
 
 	if scanErr := sumRow.Scan(&sum); scanErr != nil {
 		return 0, scanErr
 	}
 
-	return sum, nil
+	if sum == nil {
+		return 0, nil
+	}
+
+	return *sum, nil
 }
 
 func (s PgStorage) GetUserBalance(ctx context.Context, userID int64) (float64, error) {

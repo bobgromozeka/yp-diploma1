@@ -119,6 +119,7 @@ func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
 }
 
 func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
+	d.Logger.Infow("Starting accrual polling.", "accrual_addr", config.Get().AccrualSystemAddress)
 	ac := New(d, config.Get().AccrualSystemAddress)
 
 	ac.Start(shutdownCtx)

@@ -199,10 +199,10 @@ func (s PgStorage) UpdateOrderStatus(ctx context.Context, number string, status 
 	return nil
 }
 
-func (s PgStorage) Withdraw(ctx context.Context, userID int64, orderNumber string, sum int) error {
+func (s PgStorage) Withdraw(ctx context.Context, userID int64, orderNumber string, sum float64) error {
 	balanceRow := s.db.QueryRowContext(ctx, "select balance from user_balances where user_id = $1", userID)
 
-	var balance int
+	var balance float64
 
 	balanceErr := balanceRow.Scan(&balance)
 	if balanceErr != nil {
@@ -238,10 +238,10 @@ func (s PgStorage) Withdraw(ctx context.Context, userID int64, orderNumber strin
 	return nil
 }
 
-func (s PgStorage) GetUserWithdrawalsSum(ctx context.Context, userID int64) (int, error) {
+func (s PgStorage) GetUserWithdrawalsSum(ctx context.Context, userID int64) (float64, error) {
 	sumRow := s.db.QueryRowContext(ctx, "select sum(sum) from withdrawals where user_id = $1", userID)
 
-	var sum int
+	var sum float64
 
 	if scanErr := sumRow.Scan(&sum); scanErr != nil {
 		return 0, scanErr
@@ -250,10 +250,10 @@ func (s PgStorage) GetUserWithdrawalsSum(ctx context.Context, userID int64) (int
 	return sum, nil
 }
 
-func (s PgStorage) GetUserBalance(ctx context.Context, userID int64) (int, error) {
+func (s PgStorage) GetUserBalance(ctx context.Context, userID int64) (float64, error) {
 	balanceRow := s.db.QueryRowContext(ctx, "select balance from user_balances where user_id = $1", userID)
 
-	var balance int
+	var balance float64
 
 	if scanErr := balanceRow.Scan(&balance); scanErr != nil {
 		return 0, scanErr
@@ -351,7 +351,7 @@ func createOrdersTable(ctx context.Context, tx *sql.Tx) error {
     			user_id bigint,
     			number varchar(255) NOT NULL,
     			status varchar(255) NOT NULL,
-    			accrual int,
+    			accrual double precision,
     			uploaded_at timestamp NOT NULL,
     			updated_at timestamp,
     			constraint fk_user
@@ -369,7 +369,7 @@ func createUserBalancesTable(ctx context.Context, tx *sql.Tx) error {
 		`create table if not exists user_balances(
     			id bigserial primary key,
     			user_id bigint,
-    			balance int NOT NULL default 0,
+    			balance double precision NOT NULL default 0,
     			constraint fk_user
             		foreign key (user_id)
                     references users(id)
@@ -386,7 +386,7 @@ func createWithdrawalsTable(ctx context.Context, tx *sql.Tx) error {
     			id bigserial primary key,
     			user_id bigint,
     			order_number varchar(255) NOT NULL,
-    			sum int NOT NULL,
+    			sum double precision NOT NULL,
     			processed_at timestamp NOT NULL,
     			constraint fk_user
             		foreign key (user_id)

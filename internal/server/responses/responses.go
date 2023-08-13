@@ -7,6 +7,6 @@ type Register struct {
 type Login Register
 
 type Balance struct {
-	Current   int `json:"current"`
-	Withdrawn int `json:"withdrawn"`
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
 }

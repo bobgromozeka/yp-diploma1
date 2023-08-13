@@ -23,8 +23,8 @@ type Storage interface {
 	GetUserOrders(ctx context.Context, userID int64) ([]models.Order, error)
 	GetLatestUnprocessedOrders(ctx context.Context, count int) ([]models.Order, error)
 	UpdateOrderStatus(ctx context.Context, number string, status string, accrual *float64) error
-	Withdraw(ctx context.Context, userID int64, orderNumber string, sum int) error
-	GetUserWithdrawalsSum(ctx context.Context, userID int64) (int, error)
-	GetUserBalance(ctx context.Context, userID int64) (int, error)
+	Withdraw(ctx context.Context, userID int64, orderNumber string, sum float64) error
+	GetUserWithdrawalsSum(ctx context.Context, userID int64) (float64, error)
+	GetUserBalance(ctx context.Context, userID int64) (float64, error)
 	GetUserWithdrawals(ctx context.Context, userID int64) ([]models.Withdrawal, error)
 }

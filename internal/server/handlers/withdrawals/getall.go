@@ -1,4 +1,4 @@
-package orders
+package withdrawals
 
 import (
 	"net/http"
@@ -17,19 +17,19 @@ func GetAll(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		orders, ordersErr := d.Storage.GetUserOrders(r.Context(), userID)
-		if ordersErr != nil {
-			d.Logger.Error(ordersErr)
+		withdrawals, withdrawalsErr := d.Storage.GetUserWithdrawals(r.Context(), userID)
+		if withdrawalsErr != nil {
+			d.Logger.Error(withdrawalsErr)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		if len(orders) < 1 {
+		if len(withdrawals) < 1 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		if serveErr := handlers.ServeJSON(w, orders); serveErr != nil {
+		if serveErr := handlers.ServeJSON(w, withdrawals); serveErr != nil {
 			d.Logger.Error(serveErr)
 			return
 		}

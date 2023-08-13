@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bobgromozeka/yp-diploma1/internal/server"
+	"github.com/bobgromozeka/yp-diploma1/internal/app"
 	"github.com/bobgromozeka/yp-diploma1/internal/server/config"
 )
 
@@ -13,5 +13,5 @@ func main() {
 
 	config.Set(c)
 
-	server.Run()
+	app.Start(c)
 }

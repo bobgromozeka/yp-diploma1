@@ -5,3 +5,8 @@ type Register struct {
 }
 
 type Login Register
+
+type Balance struct {
+	Current   int `json:"current"`
+	Withdrawn int `json:"withdrawn"`
+}

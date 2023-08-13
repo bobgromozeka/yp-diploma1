@@ -6,3 +6,8 @@ type Register struct {
 }
 
 type Login Register
+
+type Withdraw struct {
+	Order string `json:"order"`
+	Sum   int    `json:"sum"`
+}

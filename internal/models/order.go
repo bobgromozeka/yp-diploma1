@@ -15,10 +15,10 @@ const (
 var OrderFirstStatus = OrderStatusNew
 
 type Order struct {
-	ID         int64
-	UserID     int64 `json:"-"`
-	Number     string
-	Status     string
-	UploadedAt time.Time
+	ID         int64        `json:"-"`
+	UserID     int64        `json:"-"`
+	Number     string       `json:"number"`
+	Status     string       `json:"status"`
+	UploadedAt time.Time    `json:"uploaded_at"`
 	UpdatedAt  sql.NullTime `json:"-"`
 }

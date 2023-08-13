@@ -18,7 +18,7 @@ func parseFlags(c *config.Config) {
 	flag.StringVar(&c.RunAddress, "a", "localhost:8080", "server address and port")
 	flag.StringVar(
 		&c.DatabaseURI, "d", "",
-		"Postgresql data source name (connection string like postgres://username:password@localhost:5432/database_name)",
+		"Postgresql data source name (connection string like postgres://practicum:practicum@localhost:5432/practicum)",
 	)
 	flag.StringVar(&c.AccrualSystemAddress, "r", "", "Accrual system address")
 	flag.StringVar(&c.JWTSecret, "j", "secret", "JWT Secret key")

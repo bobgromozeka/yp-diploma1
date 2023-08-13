@@ -1,25 +1,27 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
-	"os"
+	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
 
-	"github.com/bobgromozeka/yp-diploma1/internal/app"
-	"github.com/bobgromozeka/yp-diploma1/internal/db"
+	"github.com/bobgromozeka/yp-diploma1/internal/app/dependencies"
 	"github.com/bobgromozeka/yp-diploma1/internal/jwt"
-	"github.com/bobgromozeka/yp-diploma1/internal/log"
 	"github.com/bobgromozeka/yp-diploma1/internal/server/config"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers/balance"
 	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers/orders"
 	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers/users"
-	"github.com/bobgromozeka/yp-diploma1/internal/storage"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers/withdrawals"
 )
 
-func makeServer(app app.App) *chi.Mux {
+func makeServer(d dependencies.D) *chi.Mux {
 	r := chi.NewMux()
 
 	r.Use(
@@ -35,11 +37,13 @@ func makeServer(app app.App) *chi.Mux {
 			r.Route(
 				"/user", func(r chi.Router) {
 					r.Post(
-						"/register", users.Register(app),
+						"/register", users.Register(d),
 					)
+
 					r.Post(
-						"/login", users.Login(app),
+						"/login", users.Login(d),
 					)
+
 					r.Group(
 						func(r chi.Router) {
 							r.Use(jwtauth.Verifier(jwt.GetTokenAuth(config.Get().JWTSecret)))
@@ -47,10 +51,23 @@ func makeServer(app app.App) *chi.Mux {
 
 							r.Route(
 								"/orders", func(r chi.Router) {
-									r.Get("/", orders.GetAll(app))
-									r.Post("/", orders.Create(app))
+									r.Get("/", orders.GetAll(d))
+									r.Post("/", orders.Create(d))
 								},
 							)
+
+							r.Route(
+								"/balance", func(r chi.Router) {
+									r.Get(
+										"/", balance.Get(d),
+									)
+									r.Post(
+										"/withdraw", balance.Withdraw(d),
+									)
+								},
+							)
+
+							r.Get("/withdrawals", withdrawals.GetAll(d))
 						},
 					)
 				},
@@ -61,31 +78,34 @@ func makeServer(app app.App) *chi.Mux {
 	return r
 }
 
-func Run() {
-	logger, loggerError := log.New()
-	if loggerError != nil {
-		fmt.Println(loggerError)
-		os.Exit(1)
-	}
-	defer logger.Sync()
+func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
+	server := http.Server{Addr: config.Get().RunAddress, Handler: makeServer(d)}
 
-	connErr := db.Connect(config.Get().DatabaseURI)
-	if connErr != nil {
-		logger.Fatalln(connErr)
-	}
+	//graceful shutdown
+	go func() {
+		<-shutdownCtx.Done()
 
-	pgStorage := storage.NewPGStorage(db.Connection())
+		forceCtx, _ := context.WithTimeout(context.Background(), time.Second*30)
+		go func() {
+			<-forceCtx.Done()
+			d.Logger.Fatal("Shutdown deadline is exceeded. Forcing exit")
+		}()
 
-	application := app.New(pgStorage, db.Connection(), logger)
-	server := makeServer(application)
-
-	bootstrapError := storage.Bootstrap(db.Connection())
-	if bootstrapError != nil {
-		logger.Fatalln(bootstrapError)
-	}
+		d.Logger.Info("Shutting down server.....")
+		err := server.Shutdown(forceCtx)
+		if err != nil {
+			d.Logger.Fatal(err)
+		}
+	}()
 
 	fmt.Println("Running server on " + config.Get().RunAddress)
-	if err := http.ListenAndServe(config.Get().RunAddress, server); err != nil {
-		logger.Fatalln(err)
+	if err := server.ListenAndServe(); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			d.Logger.Fatalln(err)
+		}
+	}
+
+	if wg != nil {
+		wg.Done()
 	}
 }

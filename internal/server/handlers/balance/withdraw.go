@@ -1,30 +1,34 @@
-package orders
+package balance
 
 import (
-	"io"
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/bobgromozeka/yp-diploma1/internal/app/dependencies"
 	"github.com/bobgromozeka/yp-diploma1/internal/functions"
 	httphelpers "github.com/bobgromozeka/yp-diploma1/internal/http"
 	"github.com/bobgromozeka/yp-diploma1/internal/jwt"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/requests"
 	"github.com/bobgromozeka/yp-diploma1/internal/storage"
 )
 
-func Create(d dependencies.D) http.HandlerFunc {
+func Withdraw(d dependencies.D) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !httphelpers.CheckContentType(w, r, httphelpers.ContentText) {
+		if !httphelpers.CheckContentType(w, r, httphelpers.ContentJSON) {
 			return
 		}
 
-		orderNumber, readErr := io.ReadAll(r.Body)
-		if readErr != nil {
-			d.Logger.Errorw("Create order", "error", readErr)
+		var withdrawRequest requests.Withdraw
+
+		decoder := json.NewDecoder(r.Body)
+		if decodeErr := decoder.Decode(&withdrawRequest); decodeErr != nil {
+			d.Logger.Error(decodeErr)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		if !functions.CheckLuhn(string(orderNumber)) {
+		if !functions.CheckLuhn(withdrawRequest.Order) {
 			http.Error(w, "Wrong order format", http.StatusUnprocessableEntity)
 			return
 		}
@@ -36,24 +40,16 @@ func Create(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		createOrderErr := d.Storage.CreateOrder(r.Context(), string(orderNumber), userID)
-		if createOrderErr != nil {
-			switch createOrderErr {
-			case storage.ErrOrderAlreadyCreated:
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("Order already created"))
-				return
-			case storage.ErrOrderForeign:
-				http.Error(w, "Order created by another user", http.StatusConflict)
-				return
-			default:
-				d.Logger.Error(createOrderErr)
+		withdrawErr := d.Storage.Withdraw(r.Context(), userID, withdrawRequest.Order, withdrawRequest.Sum)
+		if withdrawErr != nil {
+			if errors.Is(withdrawErr, storage.ErrInsufficientFunds) {
+				http.Error(w, "Insufficient funds", http.StatusPaymentRequired)
+			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
 			}
+			return
 		}
 
-		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte("Order accepted"))
+		w.WriteHeader(http.StatusOK)
 	}
 }

@@ -61,7 +61,15 @@ func makeDependencies(c config.Config) dependencies.D {
 		logger.Fatalln(connErr)
 	}
 
-	pgStorage := storage.NewPGStorage(db.Connection())
+	pgUsersStorage := storage.NewPgUsersStorage(db.Connection())
+	pgOrdersStorage := storage.NewPgOrdersStorage(db.Connection())
+	pgWithdrawalsStorage := storage.NewPgWithdrawalsStorage(db.Connection())
 
-	return dependencies.New(pgStorage, db.Connection(), logger)
+	return dependencies.D{
+		UsersStorage:       pgUsersStorage,
+		OrdersStorage:      pgOrdersStorage,
+		WithdrawalsStorage: pgWithdrawalsStorage,
+		DB:                 db.Connection(),
+		Logger:             logger,
+	}
 }

@@ -28,7 +28,7 @@ func Register(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		createUserErr := d.Storage.CreateUser(r.Context(), reqPayload.Login, reqPayload.Password)
+		createUserErr := d.UsersStorage.CreateUser(r.Context(), reqPayload.Login, reqPayload.Password)
 		if createUserErr == storage.ErrUserAlreadyExists {
 			http.Error(w, "User already exists", http.StatusConflict)
 			return
@@ -38,7 +38,7 @@ func Register(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		ID, authErr := d.Storage.AuthUser(r.Context(), reqPayload.Login, reqPayload.Password)
+		ID, authErr := d.UsersStorage.AuthUser(r.Context(), reqPayload.Login, reqPayload.Password)
 		if authErr != nil {
 			d.Logger.Error(authErr)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)

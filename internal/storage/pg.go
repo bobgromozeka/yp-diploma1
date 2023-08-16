@@ -17,13 +17,37 @@ type PgStorage struct {
 	db *sql.DB
 }
 
-func NewPGStorage(db *sql.DB) Storage {
-	return PgStorage{
+type PgOrdersStorage struct {
+	db *sql.DB
+}
+
+type PgUsersStorage struct {
+	db *sql.DB
+}
+
+type PgWithdrawalsStorage struct {
+	db *sql.DB
+}
+
+func NewPgUsersStorage(db *sql.DB) UsersStorage {
+	return PgUsersStorage{
 		db,
 	}
 }
 
-func (s PgStorage) CreateUser(ctx context.Context, login string, password string) error {
+func NewPgOrdersStorage(db *sql.DB) OrdersStorage {
+	return PgOrdersStorage{
+		db,
+	}
+}
+
+func NewPgWithdrawalsStorage(db *sql.DB) WithdrawalsStorage {
+	return PgWithdrawalsStorage{
+		db,
+	}
+}
+
+func (s PgUsersStorage) CreateUser(ctx context.Context, login string, password string) error {
 	tx, txErr := s.db.BeginTx(ctx, nil)
 	if txErr != nil {
 		return txErr
@@ -54,7 +78,7 @@ func (s PgStorage) CreateUser(ctx context.Context, login string, password string
 	return nil
 }
 
-func (s PgStorage) AuthUser(ctx context.Context, login string, password string) (int64, error) {
+func (s PgUsersStorage) AuthUser(ctx context.Context, login string, password string) (int64, error) {
 	hashedPwd := hash.Sha256([]byte(password))
 	row := s.db.QueryRowContext(ctx, "select id from users where login = $1 and password = $2", login, hashedPwd)
 
@@ -74,8 +98,14 @@ func (s PgStorage) AuthUser(ctx context.Context, login string, password string) 
 	return ID, nil
 }
 
-func (s PgStorage) CreateOrder(ctx context.Context, number string, userID int64) error {
-	existingOrder, existingOrderErr := s.GetOrder(ctx, number)
+func (s PgOrdersStorage) CreateOrder(ctx context.Context, number string, userID int64) error {
+	tx, txErr := s.db.BeginTx(ctx, nil)
+	if txErr != nil {
+		return txErr
+	}
+	defer tx.Rollback()
+
+	existingOrder, existingOrderErr := getOrder(ctx, tx, number)
 	if existingOrderErr != nil && !errors.Is(existingOrderErr, ErrOrderNotFound) {
 		return existingOrderErr
 	} else if existingOrderErr == nil {
@@ -85,7 +115,7 @@ func (s PgStorage) CreateOrder(ctx context.Context, number string, userID int64)
 		return ErrOrderForeign
 	}
 
-	_, createErr := s.db.ExecContext(
+	_, createErr := tx.ExecContext(
 		ctx, "insert into orders(user_id, number, status, uploaded_at) values($1,$2,$3,$4)", userID, number,
 		models.OrderFirstStatus, time.Now(),
 	)
@@ -96,7 +126,7 @@ func (s PgStorage) CreateOrder(ctx context.Context, number string, userID int64)
 	return nil
 }
 
-func (s PgStorage) GetUserOrders(ctx context.Context, userID int64) ([]models.Order, error) {
+func (s PgOrdersStorage) GetUserOrders(ctx context.Context, userID int64) ([]models.Order, error) {
 	orders := make([]models.Order, 0)
 	rows, rowsErr := s.db.QueryContext(
 		ctx, "select id, user_id, number, status, accrual, uploaded_at, updated_at from orders where user_id = $1",
@@ -123,28 +153,7 @@ func (s PgStorage) GetUserOrders(ctx context.Context, userID int64) ([]models.Or
 	return orders, nil
 }
 
-func (s PgStorage) GetOrder(ctx context.Context, number string) (models.Order, error) {
-	var o models.Order
-
-	row := s.db.QueryRowContext(
-		ctx, "select id, user_id, number, status, uploaded_at, updated_at from orders where number = $1", number,
-	)
-
-	if row.Err() != nil {
-		return o, row.Err()
-	}
-
-	if scanErr := row.Scan(&o.ID, &o.UserID, &o.Number, &o.Status, &o.UploadedAt, &o.UpdatedAt); scanErr != nil {
-		if errors.Is(scanErr, sql.ErrNoRows) {
-			return o, ErrOrderNotFound
-		}
-		return o, scanErr
-	}
-
-	return o, nil
-}
-
-func (s PgStorage) GetLatestUnprocessedOrders(ctx context.Context, count int) ([]models.Order, error) {
+func (s PgOrdersStorage) GetLatestUnprocessedOrders(ctx context.Context, count int) ([]models.Order, error) {
 	orders := make([]models.Order, 0)
 	rows, rowsErr := s.db.QueryContext(
 		ctx,
@@ -171,7 +180,7 @@ func (s PgStorage) GetLatestUnprocessedOrders(ctx context.Context, count int) ([
 	return orders, nil
 }
 
-func (s PgStorage) UpdateOrderStatus(ctx context.Context, number string, status string, accrual *float64) error {
+func (s PgOrdersStorage) UpdateOrderStatus(ctx context.Context, number string, status string, accrual *float64) error {
 	tx, txErr := s.db.BeginTx(ctx, nil)
 	if txErr != nil {
 		return txErr
@@ -202,8 +211,14 @@ func (s PgStorage) UpdateOrderStatus(ctx context.Context, number string, status 
 	return nil
 }
 
-func (s PgStorage) Withdraw(ctx context.Context, userID int64, orderNumber string, sum float64) error {
-	balanceRow := s.db.QueryRowContext(ctx, "select balance from user_balances where user_id = $1", userID)
+func (s PgWithdrawalsStorage) Withdraw(ctx context.Context, userID int64, orderNumber string, sum float64) error {
+	tx, txErr := s.db.BeginTx(ctx, nil)
+	if txErr != nil {
+		return txErr
+	}
+	defer tx.Rollback()
+
+	balanceRow := tx.QueryRowContext(ctx, "select balance from user_balances where user_id = $1", userID)
 
 	var balance float64
 
@@ -215,12 +230,6 @@ func (s PgStorage) Withdraw(ctx context.Context, userID int64, orderNumber strin
 	if balance < sum {
 		return ErrInsufficientFunds
 	}
-
-	tx, txErr := s.db.BeginTx(ctx, nil)
-	if txErr != nil {
-		return txErr
-	}
-	defer tx.Rollback()
 
 	_, withdrawErr := tx.ExecContext(
 		ctx, "insert into withdrawals(user_id, order_number, sum, processed_at) values($1,$2,$3, $4)", userID,
@@ -241,35 +250,36 @@ func (s PgStorage) Withdraw(ctx context.Context, userID int64, orderNumber strin
 	return nil
 }
 
-func (s PgStorage) GetUserWithdrawalsSum(ctx context.Context, userID int64) (float64, error) {
-	sumRow := s.db.QueryRowContext(ctx, "select sum(sum) from withdrawals where user_id = $1", userID)
-
-	var sum *float64
-
-	if scanErr := sumRow.Scan(&sum); scanErr != nil {
-		return 0, scanErr
+func (s PgWithdrawalsStorage) GetUserBalance(ctx context.Context, userID int64) (float64, float64, error) {
+	tx, txErr := s.db.BeginTx(ctx, nil)
+	if txErr != nil {
+		return 0, 0, txErr
 	}
 
-	if sum == nil {
-		return 0, nil
-	}
-
-	return *sum, nil
-}
-
-func (s PgStorage) GetUserBalance(ctx context.Context, userID int64) (float64, error) {
-	balanceRow := s.db.QueryRowContext(ctx, "select balance from user_balances where user_id = $1", userID)
+	balanceRow := tx.QueryRowContext(ctx, "select balance from user_balances where user_id = $1", userID)
 
 	var balance float64
 
 	if scanErr := balanceRow.Scan(&balance); scanErr != nil {
-		return 0, scanErr
+		return 0, 0, scanErr
 	}
 
-	return balance, nil
+	sumRow := tx.QueryRowContext(ctx, "select sum(sum) from withdrawals where user_id = $1", userID)
+
+	var sum *float64
+
+	if scanErr := sumRow.Scan(&sum); scanErr != nil {
+		return 0, 0, scanErr
+	}
+
+	if sum == nil {
+		return balance, 0, nil
+	}
+
+	return balance, *sum, nil
 }
 
-func (s PgStorage) GetUserWithdrawals(ctx context.Context, userID int64) ([]models.Withdrawal, error) {
+func (s PgWithdrawalsStorage) GetUserWithdrawals(ctx context.Context, userID int64) ([]models.Withdrawal, error) {
 	var withdrawals []models.Withdrawal
 
 	withdrawalRows, withdrawalsErr := s.db.QueryContext(
@@ -335,6 +345,31 @@ func Bootstrap(db *sql.DB) error {
 	tx.Commit()
 
 	return nil
+}
+
+type Querier interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+func getOrder(ctx context.Context, querier Querier, number string) (models.Order, error) {
+	var o models.Order
+
+	row := querier.QueryRowContext(
+		ctx, "select id, user_id, number, status, uploaded_at, updated_at from orders where number = $1", number,
+	)
+
+	if row.Err() != nil {
+		return o, row.Err()
+	}
+
+	if scanErr := row.Scan(&o.ID, &o.UserID, &o.Number, &o.Status, &o.UploadedAt, &o.UpdatedAt); scanErr != nil {
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			return o, ErrOrderNotFound
+		}
+		return o, scanErr
+	}
+
+	return o, nil
 }
 
 func createUsersTable(ctx context.Context, tx *sql.Tx) error {

@@ -36,7 +36,7 @@ func Create(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		createOrderErr := d.Storage.CreateOrder(r.Context(), string(orderNumber), userID)
+		createOrderErr := d.OrdersStorage.CreateOrder(r.Context(), string(orderNumber), userID)
 		if createOrderErr != nil {
 			switch createOrderErr {
 			case storage.ErrOrderAlreadyCreated:

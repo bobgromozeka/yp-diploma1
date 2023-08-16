@@ -17,7 +17,7 @@ func GetAll(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		withdrawals, withdrawalsErr := d.Storage.GetUserWithdrawals(r.Context(), userID)
+		withdrawals, withdrawalsErr := d.WithdrawalsStorage.GetUserWithdrawals(r.Context(), userID)
 		if withdrawalsErr != nil {
 			d.Logger.Error(withdrawalsErr)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

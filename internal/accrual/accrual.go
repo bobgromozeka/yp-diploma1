@@ -43,7 +43,7 @@ func New(d dependencies.D, accrualAddr string) Client {
 
 func (ac Client) Start(shutdownCtx context.Context) {
 	for {
-		orders, orderErr := ac.d.Storage.GetLatestUnprocessedOrders(shutdownCtx, OrdersBatchSize)
+		orders, orderErr := ac.d.OrdersStorage.GetLatestUnprocessedOrders(shutdownCtx, OrdersBatchSize)
 		if orderErr != nil && !errors.Is(orderErr, context.Canceled) {
 			ac.d.Logger.Error(orderErr)
 		} else {
@@ -104,7 +104,7 @@ func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
 	case http.StatusInternalServerError:
 		ac.d.Logger.Infow("Accrual system returned internal server error", "order_number", order.Number)
 	case http.StatusOK:
-		updateErr := ac.d.Storage.UpdateOrderStatus(
+		updateErr := ac.d.OrdersStorage.UpdateOrderStatus(
 			ctx, order.Number, orderResponse.Status, orderResponse.Accrual,
 		)
 		if updateErr != nil {
@@ -120,10 +120,13 @@ func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
 }
 
 func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
+
 	ac := New(d, config.Get().AccrualSystemAddress)
 
 	ac.Start(shutdownCtx)
 
 	d.Logger.Info("Stopping accrual client.....")
-	wg.Done()
 }

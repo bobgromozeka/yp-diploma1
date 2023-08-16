@@ -79,6 +79,10 @@ func makeServer(d dependencies.D) *chi.Mux {
 }
 
 func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
+
 	server := http.Server{Addr: config.Get().RunAddress, Handler: makeServer(d)}
 
 	//graceful shutdown
@@ -104,9 +108,5 @@ func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
 		if !errors.Is(err, http.ErrServerClosed) {
 			d.Logger.Fatalln(err)
 		}
-	}
-
-	if wg != nil {
-		wg.Done()
 	}
 }

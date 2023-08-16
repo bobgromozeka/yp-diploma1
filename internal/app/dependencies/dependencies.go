@@ -9,15 +9,9 @@ import (
 )
 
 type D struct {
-	Storage storage.Storage
-	DB      *sql.DB
-	Logger  *zap.SugaredLogger
-}
-
-func New(s storage.Storage, db *sql.DB, logger *zap.SugaredLogger) D {
-	return D{
-		s,
-		db,
-		logger,
-	}
+	UsersStorage       storage.UsersStorage
+	OrdersStorage      storage.OrdersStorage
+	WithdrawalsStorage storage.WithdrawalsStorage
+	DB                 *sql.DB
+	Logger             *zap.SugaredLogger
 }

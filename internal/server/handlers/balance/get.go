@@ -20,21 +20,14 @@ func Get(d dependencies.D) http.HandlerFunc {
 
 		var BalanceResponse responses.Balance
 
-		withdrawalsSum, withdrawalsErr := d.Storage.GetUserWithdrawalsSum(r.Context(), userID)
-		if withdrawalsErr != nil {
-			d.Logger.Error(withdrawalsErr)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		BalanceResponse.Withdrawn = withdrawalsSum
-
-		balance, balanceErr := d.Storage.GetUserBalance(r.Context(), userID)
+		balance, withdrawalsSum, balanceErr := d.WithdrawalsStorage.GetUserBalance(r.Context(), userID)
 		if balanceErr != nil {
 			d.Logger.Error(balanceErr)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		BalanceResponse.Current = balance
+		BalanceResponse.Withdrawn = withdrawalsSum
 
 		if serveErr := handlers.ServeJSON(w, BalanceResponse); serveErr != nil {
 			d.Logger.Error(serveErr)

@@ -40,7 +40,7 @@ func Withdraw(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		withdrawErr := d.Storage.Withdraw(r.Context(), userID, withdrawRequest.Order, withdrawRequest.Sum)
+		withdrawErr := d.WithdrawalsStorage.Withdraw(r.Context(), userID, withdrawRequest.Order, withdrawRequest.Sum)
 		if withdrawErr != nil {
 			if errors.Is(withdrawErr, storage.ErrInsufficientFunds) {
 				http.Error(w, "Insufficient funds", http.StatusPaymentRequired)

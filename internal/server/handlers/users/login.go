@@ -28,7 +28,7 @@ func Login(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		ID, authErr := d.Storage.AuthUser(r.Context(), reqPayload.Login, reqPayload.Password)
+		ID, authErr := d.UsersStorage.AuthUser(r.Context(), reqPayload.Login, reqPayload.Password)
 		if authErr != nil && authErr != storage.ErrUserNotFound {
 			d.Logger.Error(authErr)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)

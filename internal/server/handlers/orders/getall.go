@@ -17,7 +17,7 @@ func GetAll(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		orders, ordersErr := d.Storage.GetUserOrders(r.Context(), userID)
+		orders, ordersErr := d.OrdersStorage.GetUserOrders(r.Context(), userID)
 		if ordersErr != nil {
 			d.Logger.Error(ordersErr)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

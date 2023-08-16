@@ -123,6 +123,8 @@ func (s PgOrdersStorage) CreateOrder(ctx context.Context, number string, userID 
 		return createErr
 	}
 
+	tx.Commit()
+
 	return nil
 }
 

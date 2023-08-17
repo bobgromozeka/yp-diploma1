@@ -40,21 +40,15 @@ func NewPgFactory(db *sql.DB) PgFactory {
 }
 
 func (f PgFactory) CreateUsersStorage() UsersStorage {
-	return PgUsersStorage{
-		f.db,
-	}
+	return PgUsersStorage(f)
 }
 
 func (f PgFactory) CreateOrdersStorage() OrdersStorage {
-	return PgOrdersStorage{
-		f.db,
-	}
+	return PgOrdersStorage(f)
 }
 
 func (f PgFactory) CreateWithdrawalsStorage() WithdrawalsStorage {
-	return PgWithdrawalsStorage{
-		f.db,
-	}
+	return PgWithdrawalsStorage(f)
 }
 
 func (s PgUsersStorage) CreateUser(ctx context.Context, login string, password string) error {

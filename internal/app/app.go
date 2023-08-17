@@ -40,10 +40,16 @@ func Start(c config.Config) {
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
-	go server.Run(shutdownCtx, deps, &wg)
+	go func() {
+		server.Run(shutdownCtx, deps)
+		wg.Done()
+	}()
 
 	wg.Add(1)
-	go accrual.Run(shutdownCtx, deps, &wg)
+	go func() {
+		accrual.Run(shutdownCtx, deps)
+		wg.Done()
+	}()
 
 	wg.Wait()
 }
@@ -61,9 +67,10 @@ func makeDependencies(c config.Config) dependencies.D {
 		logger.Fatalln(connErr)
 	}
 
-	pgUsersStorage := storage.NewPgUsersStorage(db.Connection())
-	pgOrdersStorage := storage.NewPgOrdersStorage(db.Connection())
-	pgWithdrawalsStorage := storage.NewPgWithdrawalsStorage(db.Connection())
+	pgStoragesFactory := storage.NewPgFactory(db.Connection())
+	pgUsersStorage := pgStoragesFactory.CreateUsersStorage()
+	pgOrdersStorage := pgStoragesFactory.CreateOrdersStorage()
+	pgWithdrawalsStorage := pgStoragesFactory.CreateWithdrawalsStorage()
 
 	return dependencies.D{
 		UsersStorage:       pgUsersStorage,

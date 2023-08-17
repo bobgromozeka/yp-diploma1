@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -119,11 +118,7 @@ func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
 	return nil
 }
 
-func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
-	if wg != nil {
-		defer wg.Done()
-	}
-
+func Run(shutdownCtx context.Context, d dependencies.D) {
 	ac := New(d, config.Get().AccrualSystemAddress)
 
 	ac.Start(shutdownCtx)

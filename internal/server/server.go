@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -78,11 +77,7 @@ func makeServer(d dependencies.D) *chi.Mux {
 	return r
 }
 
-func Run(shutdownCtx context.Context, d dependencies.D, wg *sync.WaitGroup) {
-	if wg != nil {
-		defer wg.Done()
-	}
-
+func Run(shutdownCtx context.Context, d dependencies.D) {
 	server := http.Server{Addr: config.Get().RunAddress, Handler: makeServer(d)}
 
 	//graceful shutdown

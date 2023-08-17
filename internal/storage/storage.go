@@ -33,3 +33,9 @@ type WithdrawalsStorage interface {
 	GetUserBalance(ctx context.Context, userID int64) (float64, float64, error)
 	GetUserWithdrawals(ctx context.Context, userID int64) ([]models.Withdrawal, error)
 }
+
+type Factory interface {
+	CreateUsersStorage() UsersStorage
+	CreateOrdersStorage() OrdersStorage
+	CreateWithdrawalsStorage() WithdrawalsStorage
+}

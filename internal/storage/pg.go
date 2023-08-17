@@ -29,21 +29,31 @@ type PgWithdrawalsStorage struct {
 	db *sql.DB
 }
 
-func NewPgUsersStorage(db *sql.DB) UsersStorage {
+type PgFactory struct {
+	db *sql.DB
+}
+
+func NewPgFactory(db *sql.DB) PgFactory {
+	return PgFactory{
+		db,
+	}
+}
+
+func (f PgFactory) CreateUsersStorage() UsersStorage {
 	return PgUsersStorage{
-		db,
+		f.db,
 	}
 }
 
-func NewPgOrdersStorage(db *sql.DB) OrdersStorage {
+func (f PgFactory) CreateOrdersStorage() OrdersStorage {
 	return PgOrdersStorage{
-		db,
+		f.db,
 	}
 }
 
-func NewPgWithdrawalsStorage(db *sql.DB) WithdrawalsStorage {
+func (f PgFactory) CreateWithdrawalsStorage() WithdrawalsStorage {
 	return PgWithdrawalsStorage{
-		db,
+		f.db,
 	}
 }
 

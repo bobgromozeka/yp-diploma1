@@ -5,7 +5,7 @@ import (
 
 	"github.com/bobgromozeka/yp-diploma1/internal/app/dependencies"
 	"github.com/bobgromozeka/yp-diploma1/internal/jwt"
-	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/helpers"
 )
 
 func GetAll(d dependencies.D) http.HandlerFunc {
@@ -29,7 +29,7 @@ func GetAll(d dependencies.D) http.HandlerFunc {
 			return
 		}
 
-		if serveErr := handlers.ServeJSON(w, withdrawals); serveErr != nil {
+		if serveErr := helpers.ServeJSON(w, withdrawals); serveErr != nil {
 			d.Logger.Error(serveErr)
 			return
 		}

@@ -5,7 +5,7 @@ import (
 
 	"github.com/bobgromozeka/yp-diploma1/internal/app/dependencies"
 	"github.com/bobgromozeka/yp-diploma1/internal/jwt"
-	"github.com/bobgromozeka/yp-diploma1/internal/server/handlers"
+	"github.com/bobgromozeka/yp-diploma1/internal/server/helpers"
 	"github.com/bobgromozeka/yp-diploma1/internal/server/responses"
 )
 
@@ -29,7 +29,7 @@ func Get(d dependencies.D) http.HandlerFunc {
 		BalanceResponse.Current = balance
 		BalanceResponse.Withdrawn = withdrawalsSum
 
-		if serveErr := handlers.ServeJSON(w, BalanceResponse); serveErr != nil {
+		if serveErr := helpers.ServeJSON(w, BalanceResponse); serveErr != nil {
 			d.Logger.Error(serveErr)
 			return
 		}

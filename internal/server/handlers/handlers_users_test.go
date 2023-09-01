@@ -166,7 +166,7 @@ func TestLoginSuccess(t *testing.T) {
 	uStorage.
 		EXPECT().
 		AuthUser(testutils.MatchContext(), gomock.Eq("login"), gomock.Eq("password")).
-		Return(int64(1), nil)
+		Return(int64(UserID), nil)
 
 	body := strings.NewReader(`{"login":"login","password":"password"}`)
 	req := httptest.NewRequest("POST", "/api/user/login", body)
@@ -337,7 +337,7 @@ func TestUserRegisterSuccess(t *testing.T) {
 	uStorage.
 		EXPECT().
 		AuthUser(testutils.MatchContext(), gomock.Eq("login"), gomock.Eq("password")).
-		Return(int64(1), nil)
+		Return(int64(UserID), nil)
 
 	body := strings.NewReader(`{"login":"login","password":"password"}`)
 	req := httptest.NewRequest("POST", "/api/user/register", body)

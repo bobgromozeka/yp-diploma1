@@ -3,6 +3,7 @@ package accrual
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -40,14 +41,9 @@ func New(d dependencies.D, accrualAddr string) Client {
 	}
 }
 
-func (ac Client) Start(shutdownCtx context.Context) {
+func (ac *Client) Start(shutdownCtx context.Context) {
 	for {
-		orders, orderErr := ac.d.OrdersStorage.GetLatestUnprocessedOrders(shutdownCtx, OrdersBatchSize)
-		if orderErr != nil && !errors.Is(orderErr, context.Canceled) {
-			ac.d.Logger.Error(orderErr)
-		} else {
-			ac.runOrderUpdates(shutdownCtx, orders)
-		}
+		ac.DoUpdatesIteration(shutdownCtx)
 
 		if shutdownCtx.Err() != nil {
 			break
@@ -57,7 +53,16 @@ func (ac Client) Start(shutdownCtx context.Context) {
 	}
 }
 
-func (ac Client) runOrderUpdates(shutdownCtx context.Context, orders []models.Order) {
+func (ac *Client) DoUpdatesIteration(shutdownCtx context.Context) {
+	orders, orderErr := ac.d.OrdersStorage.GetLatestUnprocessedOrders(shutdownCtx, OrdersBatchSize)
+	if orderErr != nil && !errors.Is(orderErr, context.Canceled) {
+		ac.d.Logger.Error(orderErr)
+	} else {
+		ac.runOrderUpdates(shutdownCtx, orders)
+	}
+}
+
+func (ac *Client) runOrderUpdates(shutdownCtx context.Context, orders []models.Order) {
 	ordersChan := make(chan models.Order)
 	minRequests := int(time.Duration(60) * time.Second / RequestTimeout) //theoretical minimum requests per minute
 	workersCount := len(orders) / minRequests
@@ -81,13 +86,13 @@ func (ac Client) runOrderUpdates(shutdownCtx context.Context, orders []models.Or
 	close(ordersChan)
 }
 
-func (ac Client) updateOrder(ctx context.Context, order models.Order) error {
+func (ac *Client) updateOrder(ctx context.Context, order models.Order) error {
 	orderResponse := accrualOrderResponse{}
 	response, err := ac.c.R().
 		SetResult(&orderResponse).
 		SetContext(ctx).
 		Get("/api/orders/" + order.Number)
-
+	fmt.Println(orderResponse)
 	if err != nil {
 		ac.d.Logger.Error("Error during requesting accrual system: " + err.Error())
 		return err
@@ -124,4 +129,8 @@ func Run(shutdownCtx context.Context, d dependencies.D) {
 	ac.Start(shutdownCtx)
 
 	d.Logger.Info("Stopping accrual client.....")
+}
+
+func (ac *Client) SetClient(newClient *resty.Client) {
+	ac.c = newClient
 }

@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: practicum
+      POSTGRES_PASSWORD: practicum
+      POSTGRES_DB: practicum
+    ports:
+      - "5432:5432"
